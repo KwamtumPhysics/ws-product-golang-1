@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"strconv"
 )
 
 type counters struct {
@@ -17,7 +18,7 @@ type counters struct {
 
 var (
 	c = counters{}
-
+	contentStack = make(map[string]string)
 	content = []string{"sports", "entertainment", "business", "education"}
 )
 
@@ -27,6 +28,7 @@ func welcomeHandler(w http.ResponseWriter, r *http.Request) {
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	data := content[rand.Intn(len(content))]
+	currentTime := time.Now().String()
 
 	c.Lock()
 	c.view++
@@ -43,6 +45,9 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	if rand.Intn(100) < 50 {
 		processClick(data)
 	}
+	key := data + ":" + currentTime
+	value := "views: " + strconv.Itoa(c.view) + ", clicks: "+ strconv.Itoa(c.click)
+	contentStack[key] = value
 }
 
 func processRequest(r *http.Request) error {
@@ -62,6 +67,10 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	if !isAllowed() {
 		w.WriteHeader(429)
 		return
+	} else {
+		for key, value := range contentStack {
+			fmt.Fprintln(w, key," ", value )
+		}
 	}
 }
 
